@@ -31,6 +31,30 @@ public abstract class AbstractPresenter<V extends IView, M extends IModel, R ext
         this.performRequest(this, request_code, async);
     }
 
+    protected void sync() {
+        this.performRequest(false);
+    }
+
+    protected void sync(int request_code) {
+        this.performRequest(request_code, false);
+    }
+
+    protected <T extends IResponse> void sync(IRequest<T> request, int request_code) {
+        this.performRequest(request, request_code, false);
+    }
+
+    protected void async() {
+        this.performRequest(true);
+    }
+
+    protected void async(int request_code) {
+        this.performRequest(request_code, true);
+    }
+
+    protected <T extends IResponse> void async(IRequest<T> request, int request_code) {
+        this.performRequest(request, request_code, true);
+    }
+
     @Override
     public boolean onError(int request_code, MvpException error) {
         V view = this.getView();

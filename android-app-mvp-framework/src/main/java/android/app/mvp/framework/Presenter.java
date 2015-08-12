@@ -10,7 +10,7 @@ import android.app.mvp.core.IResponse;
  */
 public class Presenter implements IPresenter {
 
-    public static int DEFAULT_REQUEST_CODE = 0;
+    public static final int DEFAULT_REQUEST_CODE = 0;
 
     private RequestAsyncTask mRequestAsyncTask;
 
