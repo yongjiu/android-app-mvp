@@ -39,6 +39,10 @@ public abstract class AbstractPresenter<V extends IView, M extends IModel, R ext
         this.performRequest(request_code, false);
     }
 
+    protected <T extends IResponse> void sync(IRequest<T> request) {
+        this.performRequest(request, false);
+    }
+
     protected <T extends IResponse> void sync(IRequest<T> request, int request_code) {
         this.performRequest(request, request_code, false);
     }
@@ -49,6 +53,10 @@ public abstract class AbstractPresenter<V extends IView, M extends IModel, R ext
 
     protected void async(int request_code) {
         this.performRequest(request_code, true);
+    }
+
+    protected <T extends IResponse> void async(IRequest<T> request) {
+        this.performRequest(request, true);
     }
 
     protected <T extends IResponse> void async(IRequest<T> request, int request_code) {
