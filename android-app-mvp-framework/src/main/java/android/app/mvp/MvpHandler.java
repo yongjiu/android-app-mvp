@@ -19,13 +19,13 @@ public class MvpHandler {
         return mHandler;
     }
 
-    public static void caughtException(MvpException error) {
-        MvpHandler.getHandler().onExceptionCaught(error);
+    public static boolean caughtException(MvpException error) {
+        return MvpHandler.getHandler().onExceptionCaught(error);
     }
 
-    protected void onExceptionCaught(MvpException error) {
-        if (error == null) return;
-        error.printStackTrace();
+    protected boolean onExceptionCaught(MvpException error) {
+        if (error != null) error.printStackTrace();
+        return false;
     }
 
 }

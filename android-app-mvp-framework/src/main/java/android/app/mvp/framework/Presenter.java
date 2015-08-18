@@ -44,26 +44,26 @@ public class Presenter implements IPresenter {
     }
 
     protected <T extends IResponse> void onError(int request_code, IRequest<T> request, MvpException error) {
-        if (request != null && request.onError(request_code, error)) return;
-        this.onCaughtException(request_code, error); // catch all exceptions
+        if (this.onCaughtException(request_code, error) || request == null) return; // catch common exceptions
+        request.onError(request_code, error);
     }
 
-    protected void onCaughtException(int request_code, MvpException error) {
-        MvpHandler.caughtException(error);
+    protected boolean onCaughtException(int request_code, MvpException error) {
+        return MvpHandler.caughtException(error);
     }
 
-    protected <T extends IResponse> void performRequest(IRequest<T> request, boolean async) {
-        this.performRequest(request, DEFAULT_REQUEST_CODE, async);
+    protected <T extends IResponse> Presenter performRequest(IRequest<T> request, boolean async) {
+        return this.performRequest(request, DEFAULT_REQUEST_CODE, async);
     }
 
-    public <T extends IResponse> void performRequest(IRequest<T> request, int request_code, boolean async) {
-        if (request == null) return;
+    public <T extends IResponse> Presenter performRequest(IRequest<T> request, int request_code, boolean async) {
+        if (request == null) return this;
 
         if (async) {
             this.cancelRequest(true); // attempts to cancel this task if it has not completed.
             this.mRequestAsyncTask = new RequestAsyncTask(request_code, request, this);
             this.mRequestAsyncTask.execute();
-            return;
+            return this;
         }
 
         try {
@@ -72,6 +72,8 @@ public class Presenter implements IPresenter {
         } catch (Exception e) {
             this.onError(request_code, request, new MvpException(e));
         }
+
+        return this;
     }
 
     public boolean cancelRequest(boolean mayInterruptIfRunning) {
@@ -109,7 +111,6 @@ public class Presenter implements IPresenter {
 
         @Override
         protected void onPostExecute(T response) {
-            super.onPostExecute(response);
             if (this.isCancelled()) {
                 this.mPresenter.onCancelled(this.mRequestCode);
                 return;

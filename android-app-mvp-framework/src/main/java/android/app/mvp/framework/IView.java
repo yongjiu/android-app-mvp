@@ -9,6 +9,6 @@ public interface IView {
      * @return Return <code>true</code> to prevent this event from being propagated further,
      * or <code>false</code> to indicate that you have not handled this event and it should continue to be propagated.
      */
-    boolean onError(int request, int error, String message);
+    void onError(int request, int error, String message);
 
 }

@@ -9,7 +9,7 @@ public interface IRequest<T extends IResponse> {
 
     void onSuccess(int request_code, T response);
 
-    boolean onError(int request_code, MvpException error);
+    void onError(int request_code, MvpException error);
 
     T onRequest(int request_code);
 

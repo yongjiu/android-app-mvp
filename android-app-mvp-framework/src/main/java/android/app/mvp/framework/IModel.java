@@ -5,4 +5,6 @@ package android.app.mvp.framework;
  */
 public interface IModel {
 
+    <T> T end(T t);
+
 }

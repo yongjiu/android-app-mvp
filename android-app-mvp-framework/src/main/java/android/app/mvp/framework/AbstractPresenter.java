@@ -23,50 +23,61 @@ public abstract class AbstractPresenter<V extends IView, M extends IModel, R ext
         this.mView = new WeakReference<V>(view);
     }
 
-    protected void performRequest(boolean async) {
+    public AbstractPresenter performRequest(boolean async) {
         this.performRequest(this, async);
+        return this;
     }
 
-    protected void performRequest(int request_code, boolean async) {
+    public AbstractPresenter performRequest(int request_code, boolean async) {
         this.performRequest(this, request_code, async);
+        return this;
     }
 
-    protected void sync() {
+    public AbstractPresenter sync() {
         this.performRequest(false);
+        return this;
     }
 
-    protected void sync(int request_code) {
+    public AbstractPresenter sync(int request_code) {
         this.performRequest(request_code, false);
+        return this;
     }
 
-    protected <T extends IResponse> void sync(IRequest<T> request) {
+    public <T extends IResponse> AbstractPresenter sync(IRequest<T> request) {
         this.performRequest(request, false);
+        return this;
     }
 
-    protected <T extends IResponse> void sync(IRequest<T> request, int request_code) {
+    public <T extends IResponse> AbstractPresenter sync(IRequest<T> request, int request_code) {
         this.performRequest(request, request_code, false);
+        return this;
     }
 
-    protected void async() {
+    public AbstractPresenter async() {
         this.performRequest(true);
+        return this;
     }
 
-    protected void async(int request_code) {
+    public AbstractPresenter async(int request_code) {
         this.performRequest(request_code, true);
+        return this;
     }
 
-    protected <T extends IResponse> void async(IRequest<T> request) {
+    public <T extends IResponse> AbstractPresenter async(IRequest<T> request) {
         this.performRequest(request, true);
+        return this;
     }
 
-    protected <T extends IResponse> void async(IRequest<T> request, int request_code) {
+    public <T extends IResponse> AbstractPresenter async(IRequest<T> request, int request_code) {
         this.performRequest(request, request_code, true);
+        return this;
     }
 
     @Override
-    public boolean onError(int request_code, MvpException error) {
+    public void onError(int request_code, MvpException error) {
         V view = this.getView();
-        return view != null && view.onError(request_code, error.getCode(), error.getMessage());
+        if (view == null) return;
+        view.onError(request_code, error.getCode(), error.getMessage());
     }
 
 }

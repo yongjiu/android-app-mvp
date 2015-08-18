@@ -8,7 +8,7 @@ import android.app.mvp.core.IResponse;
  */
 public interface IPresenter {
 
-    <T extends IResponse> void performRequest(IRequest<T> request, int request_code, boolean async);
+    <T extends IResponse> IPresenter performRequest(IRequest<T> request, int request_code, boolean async);
 
     boolean cancelRequest(boolean mayInterruptIfRunning);
 
