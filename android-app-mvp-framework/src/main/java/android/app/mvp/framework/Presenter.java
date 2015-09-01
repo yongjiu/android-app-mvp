@@ -5,6 +5,8 @@ import android.app.mvp.MvpHandler;
 import android.app.mvp.core.IRequest;
 import android.app.mvp.core.IResponse;
 
+import java.util.*;
+
 /**
  * Created by wuyongjiu@gmail.com on 15/8/1.
  */
@@ -12,35 +14,30 @@ public class Presenter implements IPresenter {
 
     public static final int DEFAULT_REQUEST_CODE = 0;
 
-    private RequestAsyncTask mRequestAsyncTask;
+    private final Map<Integer, RequestAsyncTask> mRequestAsyncTasks;
 
-    protected RequestAsyncTask getAsyncTask() {
-        return this.mRequestAsyncTask;
+    protected List<RequestAsyncTask> taskList() {
+        return new ArrayList<RequestAsyncTask>(this.tasks());
+    }
+
+    protected synchronized Collection<RequestAsyncTask> tasks() {
+        return this.mRequestAsyncTasks.values();
+    }
+
+    protected synchronized RequestAsyncTask task(int request_code) {
+        return this.mRequestAsyncTasks.containsKey(request_code) ? this.mRequestAsyncTasks.get(request_code) : null;
     }
 
     protected Presenter() {
-        this.mRequestAsyncTask = null;
+        this.mRequestAsyncTasks = new HashMap<Integer, RequestAsyncTask>();
     }
 
-    protected void onCancelled(int request_code) {
+    protected void onCancelled(int request_code, RequestAsyncTask task) {
         // TODO
     }
 
-    protected <T extends IResponse> T onRequest(int request_code, IRequest<T> request) {
-        return request.onRequest(request_code);
-    }
-
-    protected <T extends IResponse> void onRespond(int request_code, IRequest<T> request, T response) {
-        if (response == null || response.isSuccess()) {
-            this.onSuccess(request_code, request, response);
-        } else {
-            this.onError(request_code, request, new MvpException(response.getCode(), response.getError()));
-        }
-    }
-
-    protected <T extends IResponse> void onSuccess(int request_code, IRequest<T> request, T response) {
-        if (request == null) return;
-        request.onSuccess(request_code, response);
+    protected boolean onCaughtException(int request_code, MvpException error) {
+        return MvpHandler.caughtException(request_code, error);
     }
 
     protected <T extends IResponse> void onError(int request_code, IRequest<T> request, MvpException error) {
@@ -48,21 +45,43 @@ public class Presenter implements IPresenter {
         request.onError(request_code, error);
     }
 
-    protected boolean onCaughtException(int request_code, MvpException error) {
-        return MvpHandler.caughtException(error);
+    protected <T extends IResponse> void onSuccess(int request_code, IRequest<T> request, T response) {
+        if (request == null) return;
+        request.onSuccess(request_code, response);
+    }
+
+    protected <T extends IResponse> void onRespond(int request_code, IRequest<T> request, T response) {
+        if (response == null) throw new IllegalArgumentException("response");
+
+        if (response.isSuccess()) {
+            this.onSuccess(request_code, request, response);
+        } else {
+            this.onError(request_code, request, new MvpException(response.getCode(), response.getError()));
+        }
+    }
+
+    protected <T extends IResponse> T onRequest(int request_code, IRequest<T> request) {
+        return request.onRequest(request_code);
     }
 
     protected <T extends IResponse> Presenter performRequest(IRequest<T> request, boolean async) {
         return this.performRequest(request, DEFAULT_REQUEST_CODE, async);
     }
 
+    @Override
     public <T extends IResponse> Presenter performRequest(IRequest<T> request, int request_code, boolean async) {
         if (request == null) return this;
 
         if (async) {
-            this.cancelRequest(true); // attempts to cancel this task if it has not completed.
-            this.mRequestAsyncTask = new RequestAsyncTask(request_code, request, this);
-            this.mRequestAsyncTask.execute();
+            this.cancelRequest(request_code, true); // attempts to cancel this task if it has not completed.
+
+            RequestAsyncTask task = new RequestAsyncTask(request_code, request, this);
+
+            synchronized (this.mRequestAsyncTasks) {
+                this.mRequestAsyncTasks.put(request_code, task);
+            }
+
+            task.execute();
             return this;
         }
 
@@ -76,13 +95,41 @@ public class Presenter implements IPresenter {
         return this;
     }
 
+    @Override
     public boolean cancelRequest(boolean mayInterruptIfRunning) {
-        if (this.mRequestAsyncTask == null) return true;
+        if (this.mRequestAsyncTasks.isEmpty()) return true;
 
-        boolean cancelled = this.mRequestAsyncTask.cancel(mayInterruptIfRunning);
-        this.mRequestAsyncTask = null;
+        boolean cancelled = false;
+        for (int request_code : this.mRequestAsyncTasks.keySet()) {
+            cancelled &= this.cancelRequest(request_code, mayInterruptIfRunning);
+        }
 
         return cancelled;
+    }
+
+    protected synchronized boolean cancelRequest(int request_code, boolean mayInterruptIfRunning) {
+        if (!this.mRequestAsyncTasks.containsKey(request_code)) return false;
+
+        RequestAsyncTask task = this.mRequestAsyncTasks.get(request_code);
+        boolean cancelled = task.cancel(mayInterruptIfRunning);
+        this.mRequestAsyncTasks.remove(request_code);
+
+        return cancelled;
+    }
+
+    protected <T extends IResponse> void onRespond(RequestAsyncTask<T> task, int request_code, IRequest<T> request, T response, MvpException error) {
+        this.mRequestAsyncTasks.remove(request_code);
+
+        if (task.isCancelled()) {
+            this.onCancelled(request_code, task);
+            return;
+        }
+
+        if (error == null) {
+            this.onRespond(request_code, request, response);
+        } else {
+            this.onError(request_code, request, error);
+        }
     }
 
     static class RequestAsyncTask<T extends IResponse> extends android.os.AsyncTask<Object, Object, T> {
@@ -111,15 +158,7 @@ public class Presenter implements IPresenter {
 
         @Override
         protected void onPostExecute(T response) {
-            if (this.isCancelled()) {
-                this.mPresenter.onCancelled(this.mRequestCode);
-                return;
-            }
-            if (this.mError == null) {
-                this.mPresenter.onRespond(this.mRequestCode, this.mRequest, response);
-            } else {
-                this.mPresenter.onError(this.mRequestCode, this.mRequest, this.mError);
-            }
+            this.mPresenter.onRespond(this, this.mRequestCode, this.mRequest, response, this.mError);
         }
 
     }

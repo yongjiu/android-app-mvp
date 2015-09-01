@@ -19,11 +19,11 @@ public class MvpHandler {
         return mHandler;
     }
 
-    public static boolean caughtException(MvpException error) {
-        return MvpHandler.getHandler().onExceptionCaught(error);
+    public static boolean caughtException(int request_code, MvpException error) {
+        return MvpHandler.getHandler().onExceptionCaught(request_code, error);
     }
 
-    protected boolean onExceptionCaught(MvpException error) {
+    protected boolean onExceptionCaught(int request_code, MvpException error) {
         if (error != null) error.printStackTrace();
         return false;
     }
